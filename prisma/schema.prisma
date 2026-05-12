@@ -1,0 +1,164 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum CEFRLevel {
+  A1
+  A2
+  B1
+  B2
+  C1
+  C2
+}
+
+enum ProfessionalSector {
+  tech
+  business
+  data
+  engineering
+  healthcare
+}
+
+enum SRSState {
+  New
+  Learning
+  Review
+  Relearning
+}
+
+enum ExerciseType {
+  vocabulary
+  grammar
+  reading
+  listening
+  writing
+  speaking
+}
+
+model User {
+  id              String   @id @default(cuid())
+  supabaseId      String   @unique
+  email           String   @unique
+  name            String?
+  cefrLevel       CEFRLevel?
+  sector          ProfessionalSector?
+  xp              Int      @default(0)
+  level           Int      @default(1)
+  streakDays      Int      @default(0)
+  lastActivityAt  DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  placementTests  PlacementTest[]
+  progress        UserProgress[]
+  srsItems        SRSItem[]
+  milestones      UserMilestone[]
+}
+
+model PlacementTest {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cefrResult      CEFRLevel
+  sectorResult    ProfessionalSector
+  totalQuestions  Int
+  correctAnswers  Int
+  durationSecs    Int
+  answers         Json
+  completedAt     DateTime @default(now())
+}
+
+model LearningModule {
+  id              String   @id @default(cuid())
+  title           String
+  description     String?
+  cefrLevel       CEFRLevel
+  sector          ProfessionalSector?
+  exerciseType    ExerciseType
+  orderIndex      Int
+  xpReward        Int      @default(50)
+  isCheckpoint    Boolean  @default(false)
+  isBoss          Boolean  @default(false)
+  content         Json
+  createdAt       DateTime @default(now())
+
+  progress        UserProgress[]
+  srsItems        SRSItem[]
+}
+
+model UserProgress {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  moduleId        String
+  module          LearningModule @relation(fields: [moduleId], references: [id])
+  completed       Boolean  @default(false)
+  score           Float?
+  xpEarned        Int      @default(0)
+  attempts        Int      @default(0)
+  completedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([userId, moduleId])
+}
+
+model SRSItem {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  moduleId        String?
+  module          LearningModule? @relation(fields: [moduleId], references: [id])
+
+  // Contenido de la tarjeta
+  front           String
+  back            String
+  context         String?
+  sector          ProfessionalSector?
+
+  // Estado FSRS — modelo DSR
+  state           SRSState @default(New)
+  difficulty      Float    @default(5.0)  // D: 1-10
+  stability       Float    @default(0.0)  // S: días hasta olvidar
+  retrievability  Float    @default(1.0)  // R: 0-1 probabilidad de recordar
+
+  // Scheduling
+  due             DateTime @default(now())
+  lastReviewAt    DateTime?
+  nextReviewAt    DateTime?
+  reps            Int      @default(0)
+  lapses          Int      @default(0)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId, due])
+  @@index([userId, state])
+}
+
+model Milestone {
+  id              String   @id @default(cuid())
+  key             String   @unique
+  title           String
+  description     String
+  xpReward        Int      @default(100)
+  iconUrl         String?
+
+  userMilestones  UserMilestone[]
+}
+
+model UserMilestone {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  milestoneId   String
+  milestone     Milestone @relation(fields: [milestoneId], references: [id])
+  earnedAt      DateTime  @default(now())
+
+  @@unique([userId, milestoneId])
+}
