@@ -1,156 +1,109 @@
-# AprenderIngles — Memoria del Agente
+# CLAUDE.md
 
-## Propósito del Proyecto
-Aplicación web de aprendizaje de inglés profesional (ESP — English for Specific Purposes) con evaluación adaptativa (CAT), repetición espaciada (FSRS), gamificación y mapa de aprendizaje visual. Escalable a mobile via Capacitor.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Stack Tecnológico
-| Capa | Tecnología | Notas |
-|---|---|---|
-| Framework | Next.js 16 (App Router) | src/ directory, TypeScript estricto |
-| Estilos | Tailwind CSS v4 + shadcn/ui | Tema slate |
-| Animaciones | Framer Motion | Solo en Client Components |
-| Base de Datos | PostgreSQL via Supabase | Schema gestionado con Prisma |
-| ORM | Prisma (nuevo formato) | prisma.config.ts + schema.prisma |
-| Auth | Supabase Auth | SSR con @supabase/ssr |
-| Algoritmo SRS | ts-fsrs | Modelo DSR (Dificultad, Estabilidad, Recuperabilidad) |
-| Mobile | Capacitor | Wrapping web → iOS/Android |
-| AI | Anthropic Claude API | Generación de ejercicios ESP por sector |
+## Commands
 
-## ADVERTENCIAS CRÍTICAS DE NEXT.JS 16
+```bash
+npm run dev          # Dev server (http://localhost:3000)
+npm run build        # Production build
+npm run lint         # ESLint
+npx tsc --noEmit     # Type-check without emitting
 
-### params es una Promise — SIEMPRE await
-```tsx
-// CORRECTO
-export default async function Page({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
-}
-// INCORRECTO — rompe en Next.js 16
-export default async function Page({ params }: { params: { id: string } }) {
-  const { id } = params // ERROR
-}
+# Database
+npx prisma generate                  # Regenerate client after schema changes
+npx prisma migrate dev --name <name> # Create and apply a migration
+npx prisma studio                    # Visual DB browser
 ```
 
-### fetch NO está cacheado por defecto
-```tsx
-// Para cachear — usar directiva use cache
-async function getData() {
-  'use cache'
-  return fetch('...').then(r => r.json())
-}
-// Sin use cache → fetches frescos en cada request
-```
+Before running for the first time, fill in `.env` (template already exists) and run `npx prisma migrate dev`.
 
-### Refresh de router desde Server Actions
-```tsx
-// CORRECTO — Next.js 16
-import { refresh } from 'next/cache'
-refresh()
-// NO usar router.refresh() en Server Actions
-```
+## Architecture
 
-### cookies() debe ser awaited
-```tsx
-const cookieStore = await cookies()
-```
-
-## Arquitectura de Directorios
 ```
 src/
 ├── app/
-│   ├── (auth)/
-│   │   ├── login/page.tsx
-│   │   └── register/page.tsx
-│   ├── (app)/                        # Rutas protegidas (layout verifica auth)
-│   │   ├── layout.tsx                # Middleware de auth
-│   │   ├── dashboard/page.tsx        # Mapa de aprendizaje + XP + streaks
-│   │   ├── placement/page.tsx        # Test CAT de posicionamiento
-│   │   ├── learn/[moduleId]/page.tsx # Módulo activo
-│   │   └── review/page.tsx           # Sesión de repaso SRS
-│   └── api/
-│       ├── srs/route.ts
-│       └── placement/route.ts
-├── components/
-│   ├── ui/                           # shadcn/ui (generados)
-│   ├── learning-map/
-│   │   ├── LearningMap.tsx           # Client Component con Framer Motion
-│   │   ├── MapNode.tsx
-│   │   └── FogOverlay.tsx
-│   ├── placement/
-│   │   ├── PlacementTest.tsx         # Client Component
-│   │   └── QuestionCard.tsx
-│   ├── review/
-│   │   ├── SRSCard.tsx               # Client Component
-│   │   └── RatingButtons.tsx
-│   └── dashboard/
-│       ├── XPBar.tsx
-│       ├── StreakCounter.tsx
-│       └── MilestoneAlert.tsx
+│   ├── (auth)/login/          # Public auth pages
+│   ├── (app)/                 # Protected group — layout.tsx redirects to /login if no session
+│   │   ├── dashboard/         # Learning map + XP + streak header
+│   │   ├── placement/         # CAT placement test
+│   │   └── review/            # FSRS review session
+│   └── api/srs/ api/placement/ # Route handlers (scaffolded, not yet implemented)
+├── actions/                   # Server Actions ('use server' files)
+│   ├── srs.ts                 # submitSRSReview — schedules next review via FSRS
+│   ├── placement.ts           # submitPlacementTest — saves result, redirects to /dashboard
+│   └── progress.ts            # completeModule — awards XP, updates streak
 ├── lib/
-│   ├── supabase/
-│   │   ├── client.ts                 # createBrowserClient
-│   │   └── server.ts                 # createServerClient (cookies)
-│   ├── prisma.ts                     # Singleton PrismaClient
-│   ├── srs-engine.ts                 # Motor FSRS con ts-fsrs
-│   ├── cat-engine.ts                 # Evaluación Adaptativa
-│   └── utils.ts                      # shadcn cn()
-├── hooks/
-│   ├── use-srs.ts
-│   ├── use-placement.ts
-│   └── use-progress.ts
-├── types/index.ts
-└── actions/
-    ├── placement.ts                  # 'use server' — procesar test CAT
-    ├── srs.ts                        # 'use server' — actualizar SRSItems
-    └── progress.ts                   # 'use server' — XP y streaks
+│   ├── srs-engine.ts          # FSRS wrapper: prismaItemToCard, scheduleReview, getDueSRSItems
+│   ├── cat-engine.ts          # CAT logic: session state, difficulty adjustment, CEFR estimation
+│   ├── prisma.ts              # Singleton PrismaClient with PrismaPg adapter
+│   └── supabase/{client,server}.ts  # Browser vs SSR Supabase clients
+├── components/
+│   ├── learning-map/          # LearningMap.tsx (Framer Motion nodes), MapNode.tsx
+│   ├── placement/             # PlacementTest.tsx (client state machine), sample-questions.ts
+│   ├── review/                # SRSReviewSession.tsx (flip card + 4-rating buttons)
+│   └── dashboard/             # XPBar.tsx, StreakCounter.tsx
+└── types/index.ts             # Shared types: CEFRLevel, SRSRating, MapNode, CATResult, XP constants
 ```
 
-## Modelo de Datos Prisma
-El cliente generado está en `src/generated/prisma` (no en node_modules).
-Importar como: `import { PrismaClient } from '@/generated/prisma'`
-Usar el singleton de `@/lib/prisma`.
+## Critical: Prisma v7 import paths
 
-## Algoritmo FSRS — ts-fsrs
-- Librería: `ts-fsrs`
-- `src/lib/srs-engine.ts` centraliza toda la lógica
-- Ratings: Again(1), Hard(2), Good(3), Easy(4)
-- Campos en SRSItem: difficulty (D), stability (S), retrievability (R), state, due, lapses, reps
-- Retención objetivo: 90% por defecto
+The generated client is in `src/generated/prisma/` (not `node_modules`). There is **no index file** — import from specific files:
 
-## Algoritmo CAT — Test de Posicionamiento
-- Implementado en `src/lib/cat-engine.ts`
-- Banco de preguntas clasificadas por nivel CEFR (A1→C2) y dificultad 1-10
-- Ajusta dificultad dinámicamente: correcta → sube, incorrecta → baja
-- Termina tras 20 preguntas o cuando la estimación converge (±0.5 niveles)
-- Resultado: nivel CEFR string + sector profesional
-
-## Variables de Entorno (.env)
-```
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-DATABASE_URL=
-ANTHROPIC_API_KEY=
+```ts
+import { PrismaClient, type SRSItem, type LearningModule } from '@/generated/prisma/client'
+import type { CEFRLevel, SRSState } from '@/generated/prisma/enums'
 ```
 
-## Estándares de Código
-- Componentes React funcionales, TypeScript estricto, nunca `any`
-- Server Actions en `src/actions/` con `'use server'` al tope del archivo
-- Validación con `zod` en el servidor antes de cualquier mutación
-- Importar Prisma SOLO desde `@/lib/prisma` (singleton)
-- Supabase server: `@/lib/supabase/server`; browser: `@/lib/supabase/client`
-- Framer Motion: solo en Client Components (`'use client'`)
-- No cachear datos de usuario con `use cache` (son dinámicos por sesión)
-- Usar `use cache` solo para contenido estático (banco de preguntas, módulos)
+Never import from `@/generated/prisma` (directory) — it will fail with TS2307.  
+Always use the singleton: `import { prisma } from '@/lib/prisma'`
 
-## Sectores Profesionales
-- `tech` — Ingeniería de Software / IT
-- `business` — Gestión y Liderazgo Empresarial
-- `data` — Ciencia de Datos / Analytics
-- `engineering` — Ingeniería Industrial
-- `healthcare` — Ciencias Médicas
+The `PrismaClient` constructor **requires** a driver adapter (Prisma v7 breaking change):
+```ts
+import { PrismaPg } from '@prisma/adapter-pg'
+new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) })
+```
 
-## Gamificación
-- XP por acción: lección completada (+50), revisión SRS (+10), racha diaria (+25), hito (+100)
-- Streaks: calculadas por día UTC, protegidas con "streak freeze" si hay actividad
-- Niveles del mapa: Misión → Punto de Control → Jefe (simulación real)
-- Fog of war: áreas bloqueadas hasta nivel CEFR requerido
+After any schema change: `npx prisma generate` then `npx prisma migrate dev`.
+
+## Critical: Next.js 16 breaking changes
+
+**`params` is a Promise — always `await` it:**
+```tsx
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+}
+```
+
+**`cookies()` must be awaited:**
+```ts
+const cookieStore = await cookies()
+```
+
+**`fetch` is not cached by default.** Use `'use cache'` directive on functions that fetch static content (module definitions, question banks). Never cache per-user data.
+
+**Refresh after Server Action mutations:**
+```ts
+import { refresh } from 'next/cache'  // not router.refresh()
+refresh()
+```
+
+## Data flow
+
+1. **Auth guard**: `src/app/(app)/layout.tsx` — calls `supabase.auth.getUser()`, redirects to `/login` if null.
+2. **User record**: Supabase Auth UID stored as `User.supabaseId`. All Prisma queries resolve the internal `User.id` from `supabaseId` first.
+3. **FSRS cycle**: `SRSItem` rows store the full FSRS state (difficulty D, stability S, due date). `prismaItemToCard()` reconstructs the `ts-fsrs` `Card` object; after `f.next(card, now, grade)` the result is written back via Server Action.
+4. **CAT test**: stateless on the server — `CATSession` lives in client component state, submitted in full via `submitPlacementTest`. The `sample-questions.ts` bank is the only question source for now.
+5. **XP/streaks**: `completeModule` uses a DB transaction to atomically update `UserProgress` + `User.xp` + `User.streakDays`.
+
+## Key types
+
+`SRSRating` = `1 | 2 | 3 | 4` (Again / Hard / Good / Easy) — maps directly to `ts-fsrs` `Grade`.  
+`CEFRLevel` = `'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'` — Prisma enum, ordering via `CEFR_ORDER` in `types/index.ts`.  
+`ProfessionalSector` = `'tech' | 'business' | 'data' | 'engineering' | 'healthcare'`.
+
+## Gamification constants
+
+Defined in `types/index.ts` as `XP_PER_ACTION`: lesson=50, srsReview=10, streak=25, milestone=100, checkpoint=75, boss=200.  
+Level threshold: 500 XP per level (used in `XPBar.tsx`).  
+Map unlock rule: a module unlocks when `CEFR_ORDER[module.cefrLevel] <= CEFR_ORDER[user.cefrLevel] + 1`.

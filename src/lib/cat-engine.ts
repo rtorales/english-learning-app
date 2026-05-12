@@ -2,11 +2,18 @@ import type { CATQuestion, CATResult, CEFRLevel, ProfessionalSector } from '@/ty
 import { CEFR_LEVELS, CEFR_ORDER } from '@/types'
 
 const MAX_QUESTIONS = 20
-const CONVERGENCE_THRESHOLD = 0.5
+
+export interface CATAnswer {
+  questionId: string
+  selectedIndex: number
+  correct: boolean
+  timeMs: number
+  difficulty: number
+}
 
 export interface CATSession {
   questions: CATQuestion[]
-  answers: { questionId: string; selectedIndex: number; correct: boolean; timeMs: number }[]
+  answers: CATAnswer[]
   currentDifficulty: number
   startedAt: Date
 }
@@ -39,9 +46,7 @@ export function estimateCEFRLevel(session: CATSession): CEFRLevel {
   if (answers.length === 0) return 'A1'
 
   const correctRatio = answers.filter((a) => a.correct).length / answers.length
-  const avgDifficulty = answers.reduce((sum, _, i) => {
-    return sum + session.currentDifficulty
-  }, 0) / answers.length
+  const avgDifficulty = answers.reduce((sum, a) => sum + a.difficulty, 0) / answers.length
 
   const score = (avgDifficulty / 10) * 0.6 + correctRatio * 0.4
   const levelIndex = Math.min(5, Math.floor(score * 6))

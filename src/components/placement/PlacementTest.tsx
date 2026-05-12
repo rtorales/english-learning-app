@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useActionState } from 'react'
 import { submitPlacementTest } from '@/actions/placement'
 import { createCATSession, selectNextDifficulty, shouldTerminate } from '@/lib/cat-engine'
-import type { CATSession } from '@/lib/cat-engine'
+import type { CATSession, CATAnswer } from '@/lib/cat-engine'
 import { SAMPLE_QUESTIONS } from './sample-questions'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -38,15 +38,19 @@ export function PlacementTest() {
     const timeMs = Date.now() - startTime
     const correct = selectedIndex === currentQuestion.correctIndex
 
+    const newAnswer: CATAnswer = {
+      questionId: currentQuestion.id,
+      selectedIndex,
+      correct,
+      timeMs,
+      difficulty: session.currentDifficulty,
+    }
     const newSession: CATSession = {
       ...session,
-      answers: [
-        ...session.answers,
-        { questionId: currentQuestion.id, selectedIndex, correct, timeMs },
-      ],
+      answers: [...session.answers, newAnswer],
       currentDifficulty: selectNextDifficulty({
         ...session,
-        answers: [...session.answers, { questionId: currentQuestion.id, selectedIndex, correct, timeMs }],
+        answers: [...session.answers, newAnswer],
       }),
     }
 

@@ -8,7 +8,7 @@ import {
   type Grade,
   type RecordLogItem,
 } from 'ts-fsrs'
-import type { FSRSItemState, SRSRating } from '@/types'
+import type { SRSRating } from '@/types'
 import type { SRSItem } from '@/generated/prisma/client'
 
 const params = generatorParameters({ enable_fuzz: true, maximum_interval: 365 })

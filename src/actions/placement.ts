@@ -16,6 +16,7 @@ const submitSchema = z.object({
       selectedIndex: z.number(),
       correct: z.boolean(),
       timeMs: z.number(),
+      difficulty: z.number(),
     })),
     currentDifficulty: z.number(),
     startedAt: z.coerce.date(),
