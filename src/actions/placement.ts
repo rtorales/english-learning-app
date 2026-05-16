@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { getSession } from '@/lib/auth'
 import { buildCATResult } from '@/lib/cat-engine'
 import type { CATSession } from '@/lib/cat-engine'
 import type { ProfessionalSector } from '@/types'
@@ -25,27 +25,26 @@ const submitSchema = z.object({
 })
 
 export async function submitPlacementTest(input: z.infer<typeof submitSchema>) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Unauthorized')
+  const session = await getSession()
+  if (!session) throw new Error('Unauthorized')
 
-  const { sector, session } = submitSchema.parse(input)
-  const result = buildCATResult(session as CATSession, sector as ProfessionalSector)
+  const { sector, session: catSession } = submitSchema.parse(input)
+  const result = buildCATResult(catSession as CATSession, sector as ProfessionalSector)
 
   await prisma.$transaction([
     prisma.placementTest.create({
       data: {
-        user: { connect: { supabaseId: user.id } },
+        userId: session.userId,
         cefrResult: result.estimatedLevel,
         sectorResult: result.sector,
         totalQuestions: result.totalQuestions,
         correctAnswers: result.correctAnswers,
         durationSecs: result.durationSecs,
-        answers: session.answers,
+        answers: JSON.stringify(catSession.answers),
       },
     }),
     prisma.user.update({
-      where: { supabaseId: user.id },
+      where: { id: session.userId },
       data: {
         cefrLevel: result.estimatedLevel,
         sector: result.sector,

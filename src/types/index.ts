@@ -50,6 +50,7 @@ export interface MapNode {
   cefrLevel: CEFRLevel
   isCompleted: boolean
   isUnlocked: boolean
+  isCurrent: boolean
   isCheckpoint: boolean
   isBoss: boolean
   xpReward: number

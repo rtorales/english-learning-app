@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { getSession } from '@/lib/auth'
 import { cardToStateString, prismaItemToCard, scheduleReview } from '@/lib/srs-engine'
 import { XP_PER_ACTION } from '@/types'
 
@@ -13,14 +13,13 @@ const reviewSchema = z.object({
 })
 
 export async function submitSRSReview(input: z.infer<typeof reviewSchema>) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Unauthorized')
+  const session = await getSession()
+  if (!session) throw new Error('Unauthorized')
 
   const { srsItemId, rating } = reviewSchema.parse(input)
 
   const item = await prisma.sRSItem.findUnique({ where: { id: srsItemId } })
-  if (!item || item.userId !== user.id) throw new Error('Item not found')
+  if (!item || item.userId !== session.userId) throw new Error('Item not found')
 
   const card = prismaItemToCard(item)
   const result = scheduleReview(card, rating)
@@ -43,7 +42,7 @@ export async function submitSRSReview(input: z.infer<typeof reviewSchema>) {
       },
     }),
     prisma.user.update({
-      where: { supabaseId: user.id },
+      where: { id: session.userId },
       data: {
         xp: { increment: XP_PER_ACTION.srsReview },
         lastActivityAt: now,

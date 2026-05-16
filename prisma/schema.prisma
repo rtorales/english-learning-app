@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
 }
 
 enum CEFRLevel {
@@ -42,8 +42,8 @@ enum ExerciseType {
 
 model User {
   id              String   @id @default(cuid())
-  supabaseId      String   @unique
   email           String   @unique
+  passwordHash    String
   name            String?
   cefrLevel       CEFRLevel?
   sector          ProfessionalSector?
@@ -69,7 +69,7 @@ model PlacementTest {
   totalQuestions  Int
   correctAnswers  Int
   durationSecs    Int
-  answers         Json
+  answers         String
   completedAt     DateTime @default(now())
 }
 
@@ -84,7 +84,7 @@ model LearningModule {
   xpReward        Int      @default(50)
   isCheckpoint    Boolean  @default(false)
   isBoss          Boolean  @default(false)
-  content         Json
+  content         String
   createdAt       DateTime @default(now())
 
   progress        UserProgress[]
@@ -115,19 +115,16 @@ model SRSItem {
   moduleId        String?
   module          LearningModule? @relation(fields: [moduleId], references: [id])
 
-  // Contenido de la tarjeta
   front           String
   back            String
   context         String?
   sector          ProfessionalSector?
 
-  // Estado FSRS — modelo DSR
   state           SRSState @default(New)
-  difficulty      Float    @default(5.0)  // D: 1-10
-  stability       Float    @default(0.0)  // S: días hasta olvidar
-  retrievability  Float    @default(1.0)  // R: 0-1 probabilidad de recordar
+  difficulty      Float    @default(5.0)
+  stability       Float    @default(0.0)
+  retrievability  Float    @default(1.0)
 
-  // Scheduling
   due             DateTime @default(now())
   lastReviewAt    DateTime?
   nextReviewAt    DateTime?

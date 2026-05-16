@@ -1,6 +1,6 @@
-import { LoginForm } from './LoginForm'
+import { RegisterForm } from './RegisterForm'
 
-export default function LoginPage() {
+export default function RegisterPage() {
   return (
     <main style={{
       minHeight: '100vh',
@@ -14,15 +14,15 @@ export default function LoginPage() {
     }}>
       {/* Background blobs */}
       <div style={{
-        position: 'absolute', top: '-15%', right: '-8%',
-        width: 520, height: 520, borderRadius: '50%',
-        background: 'radial-gradient(circle, color-mix(in oklab, var(--primary) 12%, transparent) 0%, transparent 70%)',
+        position: 'absolute', top: '-12%', left: '-8%',
+        width: 480, height: 480, borderRadius: '50%',
+        background: 'radial-gradient(circle, color-mix(in oklab, var(--primary) 11%, transparent) 0%, transparent 70%)',
         pointerEvents: 'none',
       }} />
       <div style={{
-        position: 'absolute', bottom: '-12%', left: '-6%',
-        width: 420, height: 420, borderRadius: '50%',
-        background: 'radial-gradient(circle, color-mix(in oklab, var(--accent) 10%, transparent) 0%, transparent 70%)',
+        position: 'absolute', bottom: '-10%', right: '-6%',
+        width: 380, height: 380, borderRadius: '50%',
+        background: 'radial-gradient(circle, color-mix(in oklab, var(--sage) 12%, transparent) 0%, transparent 70%)',
         pointerEvents: 'none',
       }} />
 
@@ -45,7 +45,7 @@ export default function LoginPage() {
             fontSize: 26, marginBottom: 16,
             boxShadow: '0 4px 0 var(--primary-2)',
           }}>
-            📖
+            🚀
           </div>
           <h1 style={{
             fontFamily: 'var(--f-display)',
@@ -53,14 +53,14 @@ export default function LoginPage() {
             fontSize: 28, letterSpacing: '-0.02em',
             color: 'var(--ink)', margin: '0 0 6px',
           }}>
-            AprendeIngles
+            Crear cuenta
           </h1>
           <p style={{ color: 'var(--ink-3)', fontSize: 14, margin: 0 }}>
-            Inglés profesional personalizado
+            Comienza tu ruta de inglés profesional
           </p>
         </div>
 
-        <LoginForm />
+        <RegisterForm />
       </div>
     </main>
   )

@@ -10,13 +10,14 @@ npm run build        # Production build
 npm run lint         # ESLint
 npx tsc --noEmit     # Type-check without emitting
 
-# Database
+# Database (SQLite local mode via @libsql/client + @prisma/adapter-libsql)
 npx prisma generate                  # Regenerate client after schema changes
 npx prisma migrate dev --name <name> # Create and apply a migration
+npx tsx prisma/seed.ts               # Seed test data (test@test.com / test1234)
 npx prisma studio                    # Visual DB browser
 ```
 
-Before running for the first time, fill in `.env` (template already exists) and run `npx prisma migrate dev`.
+Run `npx prisma migrate dev --name init` then `npx tsx prisma/seed.ts` on first run. No `.env` changes needed — SQLite file is at `prisma/dev.db`.
 
 ## Architecture
 
@@ -36,8 +37,8 @@ src/
 ├── lib/
 │   ├── srs-engine.ts          # FSRS wrapper: prismaItemToCard, scheduleReview, getDueSRSItems
 │   ├── cat-engine.ts          # CAT logic: session state, difficulty adjustment, CEFR estimation
-│   ├── prisma.ts              # Singleton PrismaClient with PrismaPg adapter
-│   └── supabase/{client,server}.ts  # Browser vs SSR Supabase clients
+│   ├── prisma.ts              # Singleton PrismaClient with PrismaLibSql adapter (SQLite)
+│   └── auth.ts                # JWT session: createSessionToken, getSession, set/clearSessionCookie
 ├── components/
 │   ├── learning-map/          # LearningMap.tsx (Framer Motion nodes), MapNode.tsx
 │   ├── placement/             # PlacementTest.tsx (client state machine), sample-questions.ts
@@ -58,11 +59,15 @@ import type { CEFRLevel, SRSState } from '@/generated/prisma/enums'
 Never import from `@/generated/prisma` (directory) — it will fail with TS2307.  
 Always use the singleton: `import { prisma } from '@/lib/prisma'`
 
-The `PrismaClient` constructor **requires** a driver adapter (Prisma v7 breaking change):
+The `PrismaClient` constructor **requires** a driver adapter (Prisma v7 breaking change).  
+`PrismaLibSql` from `@prisma/adapter-libsql` is a **factory** — pass a config object, not a pre-created client:
 ```ts
-import { PrismaPg } from '@prisma/adapter-pg'
-new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) })
+import { PrismaLibSql } from '@prisma/adapter-libsql'
+// CORRECT: pass config — it calls createClient internally
+const adapter = new PrismaLibSql({ url: 'file:/absolute/path/to/dev.db' })
+// WRONG: do not call createClient yourself and pass the result
 ```
+Always use an **absolute path** for the SQLite file URL — relative paths cause `URL_INVALID` errors.
 
 After any schema change: `npx prisma generate` then `npx prisma migrate dev`.
 
@@ -90,11 +95,12 @@ refresh()
 
 ## Data flow
 
-1. **Auth guard**: `src/app/(app)/layout.tsx` — calls `supabase.auth.getUser()`, redirects to `/login` if null.
-2. **User record**: Supabase Auth UID stored as `User.supabaseId`. All Prisma queries resolve the internal `User.id` from `supabaseId` first.
-3. **FSRS cycle**: `SRSItem` rows store the full FSRS state (difficulty D, stability S, due date). `prismaItemToCard()` reconstructs the `ts-fsrs` `Card` object; after `f.next(card, now, grade)` the result is written back via Server Action.
-4. **CAT test**: stateless on the server — `CATSession` lives in client component state, submitted in full via `submitPlacementTest`. The `sample-questions.ts` bank is the only question source for now.
-5. **XP/streaks**: `completeModule` uses a DB transaction to atomically update `UserProgress` + `User.xp` + `User.streakDays`.
+1. **Auth**: custom JWT via `jose`. `src/lib/auth.ts` signs/verifies a session cookie. `getSession()` is called in every Server Component and Server Action.
+2. **Auth guard**: `src/app/(app)/layout.tsx` — calls `getSession()`, redirects to `/login` if null.
+3. **User record**: `User.id` is the Prisma primary key (cuid). All queries use `session.userId` directly — no Supabase.
+4. **FSRS cycle**: `SRSItem` rows store the full FSRS state (difficulty D, stability S, due date). `prismaItemToCard()` reconstructs the `ts-fsrs` `Card` object; after `f.next(card, now, grade)` the result is written back via Server Action.
+5. **CAT test**: stateless on the server — `CATSession` lives in client component state, submitted in full via `submitPlacementTest`. The `sample-questions.ts` bank is the only question source for now.
+6. **XP/streaks**: `completeModule` uses a DB transaction to atomically update `UserProgress` + `User.xp` + `User.streakDays`.
 
 ## Key types
 

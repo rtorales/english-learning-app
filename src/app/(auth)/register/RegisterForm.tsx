@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { loginAction } from '@/actions/auth'
+import { registerAction } from '@/actions/auth'
 
-export function LoginForm() {
+export function RegisterForm() {
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -14,7 +15,7 @@ export function LoginForm() {
     e.preventDefault()
     setError(null)
     startTransition(async () => {
-      const result = await loginAction({ email, password })
+      const result = await registerAction({ name, email, password })
       if (result?.error) setError(result.error)
     })
   }
@@ -45,6 +46,20 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div>
+        <label style={labelStyle}>Nombre</label>
+        <input
+          type="text"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          onFocus={() => setFocusedField('name')}
+          onBlur={() => setFocusedField(null)}
+          required
+          minLength={2}
+          style={inputStyle('name')}
+          placeholder="Tu nombre"
+        />
+      </div>
+      <div>
         <label style={labelStyle}>Email</label>
         <input
           type="email"
@@ -66,8 +81,9 @@ export function LoginForm() {
           onFocus={() => setFocusedField('password')}
           onBlur={() => setFocusedField(null)}
           required
+          minLength={6}
           style={inputStyle('password')}
-          placeholder="••••••••"
+          placeholder="Mínimo 6 caracteres"
         />
       </div>
 
@@ -107,16 +123,16 @@ export function LoginForm() {
           e.currentTarget.style.boxShadow = '0 4px 0 var(--primary-2)'
         }}
       >
-        {isPending ? 'Entrando…' : 'Iniciar sesión'}
+        {isPending ? 'Creando cuenta…' : 'Crear cuenta'}
       </button>
 
       <p style={{ textAlign: 'center', fontSize: 14, color: 'var(--ink-3)', margin: 0 }}>
-        ¿No tienes cuenta?{' '}
+        ¿Ya tienes cuenta?{' '}
         <a
-          href="/register"
+          href="/login"
           style={{ color: 'var(--primary)', fontWeight: 700, textDecoration: 'none' }}
         >
-          Regístrate
+          Iniciar sesión
         </a>
       </p>
     </form>
