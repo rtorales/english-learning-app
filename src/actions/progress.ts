@@ -7,7 +7,7 @@ import { getSession } from '@/lib/auth'
 import { XP_PER_ACTION } from '@/types'
 
 const completeModuleSchema = z.object({
-  moduleId: z.string().cuid(),
+  moduleId: z.string().min(1),
   score: z.number().min(0).max(100),
 })
 

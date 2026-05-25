@@ -60,7 +60,7 @@ export default async function DashboardPage() {
           </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             {nextModule ? (
-              <Link href="/dashboard" style={{
+              <Link href={`/learn/${nextModule.id}`} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8,
                 padding: '0 20px', height: 54, borderRadius: 14,
                 background: 'var(--accent)', color: 'var(--accent-ink)',
@@ -183,10 +183,7 @@ function MiniStat({ icon, label, value, color, sublabel, badge, href }: {
   color: string; sublabel?: string; badge?: boolean; href?: string;
 }) {
   const content = (
-    <div style={{ background: 'var(--card)', border: '1px solid var(--card-ring)', borderRadius: 16, padding: 16, position: 'relative', overflow: 'hidden', cursor: href ? 'pointer' : 'default', transition: 'transform 160ms, box-shadow 160ms' }}
-      onMouseEnter={e => { if (href) { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = 'var(--sh-2)'; } }}
-      onMouseLeave={e => { if (href) { (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = ''; } }}
-    >
+    <div className={href ? 'mini-stat-link' : undefined} style={{ background: 'var(--card)', border: '1px solid var(--card-ring)', borderRadius: 16, padding: 16, position: 'relative', overflow: 'hidden', cursor: href ? 'pointer' : 'default' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
         <div style={{ width: 32, height: 32, borderRadius: 10, background: `color-mix(in oklab, ${color} 14%, transparent)`, color, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
           {icon}

@@ -2,14 +2,23 @@ import path from 'path'
 import { PrismaLibSql } from '@prisma/adapter-libsql'
 import { PrismaClient } from '@/generated/prisma/client'
 
+// Bump this version string after any `prisma migrate dev` to force singleton recreation.
+const SCHEMA_VERSION = 'v4-sessions'
+
 function createPrismaClient() {
   const dbPath = path.resolve(process.cwd(), 'prisma', 'dev.db').split(path.sep).join('/')
   const adapter = new PrismaLibSql({ url: 'file:' + dbPath })
   return new PrismaClient({ adapter })
 }
 
-const globalForPrisma = globalThis as unknown as { prisma: ReturnType<typeof createPrismaClient> }
+type GlobalPrisma = { prisma?: ReturnType<typeof createPrismaClient>; prismaVersion?: string }
+const g = globalThis as unknown as GlobalPrisma
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient()
+if (g.prismaVersion !== SCHEMA_VERSION) {
+  g.prisma = undefined
+  g.prismaVersion = SCHEMA_VERSION
+}
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+export const prisma = g.prisma ?? createPrismaClient()
+
+if (process.env.NODE_ENV !== 'production') g.prisma = prisma

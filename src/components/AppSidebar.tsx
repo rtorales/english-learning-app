@@ -5,10 +5,13 @@ import { usePathname } from 'next/navigation'
 import { logoutAction } from '@/actions/auth'
 
 const NAV = [
-  { href: '/dashboard', label: 'Inicio',       icon: HomeIcon },
-  { href: '/dashboard', label: 'Mi camino',     icon: MapIcon,   key: 'map' },
-  { href: '/review',    label: 'Repaso',        icon: CardsIcon, badge: true },
-  { href: '/placement', label: 'Test CEFR',     icon: TargetIcon },
+  { href: '/dashboard',  label: 'Inicio',        icon: HomeIcon },
+  { href: '/map',        label: 'Mi camino',      icon: MapIcon },
+  { href: '/review',     label: 'Repaso',         icon: CardsIcon, badge: true },
+  { href: '/vocabulary', label: 'Vocabulario',    icon: BookIcon },
+  { href: '/analytics',  label: 'Mi análisis',    icon: ChartIcon },
+  { href: '/placement',  label: 'Test CEFR',      icon: TargetIcon },
+  { href: '/profile',    label: 'Mi perfil',      icon: UserIcon },
 ]
 
 interface AppSidebarProps {
@@ -171,4 +174,13 @@ function TargetIcon({ active, size = 19 }: { active?: boolean; size?: number }) 
 }
 function LogoutIcon() {
   return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/></svg>
+}
+function UserIcon({ active }: { active?: boolean }) {
+  return <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.25 : 2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+}
+function BookIcon({ active }: { active?: boolean }) {
+  return <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.25 : 2} strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+}
+function ChartIcon({ active }: { active?: boolean }) {
+  return <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.25 : 2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="M7 16l4-5 4 3 4-7"/></svg>
 }

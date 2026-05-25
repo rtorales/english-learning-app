@@ -43,7 +43,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-full" style={{ background: 'var(--bg)', color: 'var(--ink)' }}>
+      <body suppressHydrationWarning className="min-h-full" style={{ background: 'var(--bg)', color: 'var(--ink)' }}>
         {children}
       </body>
     </html>

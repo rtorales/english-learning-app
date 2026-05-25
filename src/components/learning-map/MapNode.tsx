@@ -75,42 +75,81 @@ export function MapNode({ node }: MapNodeProps) {
     ? '#fff'
     : 'var(--ink-3)'
 
-  const nodeEl = (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-      <motion.div
-        className={isCurrent ? 'node-current' : undefined}
-        style={getNodeStyle()}
-        whileHover={isUnlocked ? { scale: 1.08 } : undefined}
-        whileTap={isUnlocked ? { scale: 0.94 } : undefined}
-        title={isUnlocked ? node.title : `Requiere nivel ${node.cefrLevel}`}
-      >
-        <span style={{ color: iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {getIcon()}
-        </span>
-        {!isCompleted && !isCurrent && isUnlocked && (
-          <span style={{
-            fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-            color: 'var(--primary-2)', fontFamily: 'var(--f-sans)',
-          }}>
-            {node.cefrLevel}
-          </span>
-        )}
-      </motion.div>
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, position: 'relative' }}>
 
-      {/* Node label */}
-      <div style={{
-        width: NODE_SIZE + 20,
-        textAlign: 'center',
-        overflow: 'hidden',
-      }}>
+      {/* "Seguí desde acá" popup — only for the current node */}
+      {isCurrent && (
+        <div style={{
+          position: 'absolute',
+          bottom: 'calc(100% + 6px)',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'var(--card)',
+          borderRadius: 14,
+          padding: '10px 14px',
+          border: '1px solid var(--card-ring)',
+          boxShadow: 'var(--sh-2)',
+          width: 200,
+          textAlign: 'center',
+          zIndex: 10,
+          pointerEvents: 'none',
+        }}>
+          <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            SEGUÍ DESDE ACÁ
+          </div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginTop: 4, letterSpacing: '-0.01em', lineHeight: 1.3 }}>
+            {node.title}
+          </div>
+          {/* Arrow */}
+          <div style={{
+            position: 'absolute', bottom: -7, left: '50%',
+            transform: 'translateX(-50%) rotate(45deg)',
+            width: 14, height: 14,
+            background: 'var(--card)',
+            borderRight: '1px solid var(--card-ring)',
+            borderBottom: '1px solid var(--card-ring)',
+          }} />
+        </div>
+      )}
+
+      {/* Node circle */}
+      {isUnlocked ? (
+        <Link href={`/learn/${node.moduleId}`} style={{ textDecoration: 'none', display: 'block' }}>
+          <motion.div
+            className={isCurrent ? 'node-current' : undefined}
+            style={getNodeStyle()}
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.94 }}
+            title={node.title}
+          >
+            <span style={{ color: iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {getIcon()}
+            </span>
+            {!isCompleted && !isCurrent && (
+              <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--primary-2)', fontFamily: 'var(--f-sans)' }}>
+                {node.cefrLevel}
+              </span>
+            )}
+          </motion.div>
+        </Link>
+      ) : (
+        <motion.div
+          style={getNodeStyle()}
+          title={`Requiere nivel ${node.cefrLevel}`}
+        >
+          <span style={{ color: iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {getIcon()}
+          </span>
+        </motion.div>
+      )}
+
+      {/* Label below */}
+      <div style={{ width: NODE_SIZE + 20, textAlign: 'center', overflow: 'hidden' }}>
         <p style={{
           fontSize: 11, fontWeight: 700, color: isUnlocked ? 'var(--ink-2)' : 'var(--ink-4)',
-          lineHeight: 1.3, fontFamily: 'var(--f-sans)',
-          margin: 0,
-          display: '-webkit-box',
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: 'vertical',
-          overflow: 'hidden',
+          lineHeight: 1.3, fontFamily: 'var(--f-sans)', margin: 0,
+          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
         }}>
           {node.title}
         </p>
@@ -119,14 +158,6 @@ export function MapNode({ node }: MapNodeProps) {
         </p>
       </div>
     </div>
-  )
-
-  if (!isUnlocked) return nodeEl
-
-  return (
-    <Link href={`/learn/${node.moduleId}`} style={{ textDecoration: 'none', display: 'block' }}>
-      {nodeEl}
-    </Link>
   )
 }
 

@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { submitSRSReview } from '@/actions/srs'
+import { recordStudySession } from '@/actions/vocabulary'
 import type { SRSItem } from '@/generated/prisma/client'
 import type { SRSRating } from '@/types'
 import Link from 'next/link'
@@ -23,6 +24,8 @@ export function SRSReviewSession({ items }: SRSReviewSessionProps) {
   const [showAnswer, setShowAnswer] = useState(false)
   const [completed, setCompleted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const sessionStart = useRef(Date.now())
+  const correctRef = useRef(0)
 
   const currentItem = items[currentIndex]
   const progress = (currentIndex / items.length) * 100
@@ -30,8 +33,17 @@ export function SRSReviewSession({ items }: SRSReviewSessionProps) {
   async function handleRating(rating: SRSRating) {
     if (isSubmitting) return
     setIsSubmitting(true)
+    if (rating >= 3) correctRef.current++
     await submitSRSReview({ srsItemId: currentItem.id, rating })
     if (currentIndex + 1 >= items.length) {
+      const durationSecs = Math.round((Date.now() - sessionStart.current) / 1000)
+      void recordStudySession({
+        type: 'srs_review',
+        durationSecs,
+        totalItems: items.length,
+        correctItems: correctRef.current,
+        xpEarned: items.length * 10,
+      })
       setCompleted(true)
     } else {
       setCurrentIndex(currentIndex + 1)

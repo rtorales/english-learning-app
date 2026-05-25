@@ -326,3 +326,12 @@ input, textarea, select { font-family: inherit; color: inherit; }
   to   { opacity: 1; transform: rotateY(0deg); }
 }
 .card-flip { animation: flipIn 200ms ease forwards; }
+
+/* Mini-stat hover lift — used by Server Component pages instead of onMouseEnter */
+.mini-stat-link {
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+.mini-stat-link:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--sh-2);
+}

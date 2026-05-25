@@ -8,7 +8,7 @@ import { cardToStateString, prismaItemToCard, scheduleReview } from '@/lib/srs-e
 import { XP_PER_ACTION } from '@/types'
 
 const reviewSchema = z.object({
-  srsItemId: z.string().cuid(),
+  srsItemId: z.string().min(1),
   rating: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
 })
 

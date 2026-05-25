@@ -31,6 +31,12 @@ enum SRSState {
   Relearning
 }
 
+enum SessionType {
+  lesson
+  srs_review
+  placement
+}
+
 enum ExerciseType {
   vocabulary
   grammar
@@ -58,6 +64,7 @@ model User {
   progress        UserProgress[]
   srsItems        SRSItem[]
   milestones      UserMilestone[]
+  studySessions   StudySession[]
 }
 
 model PlacementTest {
@@ -89,6 +96,7 @@ model LearningModule {
 
   progress        UserProgress[]
   srsItems        SRSItem[]
+  studySessions   StudySession[]
 }
 
 model UserProgress {
@@ -119,6 +127,7 @@ model SRSItem {
   back            String
   context         String?
   sector          ProfessionalSector?
+  deckName        String?
 
   state           SRSState @default(New)
   difficulty      Float    @default(5.0)
@@ -136,6 +145,42 @@ model SRSItem {
 
   @@index([userId, due])
   @@index([userId, state])
+}
+
+model StudySession {
+  id           String          @id @default(cuid())
+  userId       String
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         SessionType
+  moduleId     String?
+  module       LearningModule? @relation(fields: [moduleId], references: [id])
+  startedAt    DateTime        @default(now())
+  endedAt      DateTime?
+  durationSecs Int?
+  totalItems   Int             @default(0)
+  correctItems Int             @default(0)
+  xpEarned     Int             @default(0)
+  results      QuestionResult[]
+
+  @@index([userId, startedAt])
+}
+
+model QuestionResult {
+  id            String       @id @default(cuid())
+  sessionId     String
+  session       StudySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId        String
+  srsItemId     String?
+  questionText  String
+  correctAnswer String
+  userAnswer    String
+  isCorrect     Boolean
+  timeMs        Int?
+  cefrLevel     CEFRLevel?
+  createdAt     DateTime     @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, isCorrect])
 }
 
 model Milestone {
