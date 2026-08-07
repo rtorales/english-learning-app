@@ -8,16 +8,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run dev          # Dev server (http://localhost:3000)
 npm run build        # Production build
 npm run lint         # ESLint
-npx tsc --noEmit     # Type-check without emitting
+npm run typecheck    # tsc --noEmit
 
-# Database (SQLite local mode via @libsql/client + @prisma/adapter-libsql)
-npx prisma generate                  # Regenerate client after schema changes
-npx prisma migrate dev --name <name> # Create and apply a migration
-npx tsx prisma/seed.ts               # Seed test data (test@test.com / test1234)
-npx prisma studio                    # Visual DB browser
+# Database (PostgreSQL via @prisma/adapter-pg)
+npm run db:generate  # Regenerate client after schema changes
+npm run db:migrate   # Create and apply a migration (dev)
+npm run db:deploy    # Apply pending migrations (production — never generates or resets)
+npm run db:studio    # Visual DB browser
+npm run seed         # Modules, milestones, demo user (test@test.com / test1234)
+npm run seed:vocab   # 75 vocabulary cards across 5 decks
 ```
 
-Run `npx prisma migrate dev --name init` then `npx tsx prisma/seed.ts` on first run. No `.env` changes needed — SQLite file is at `prisma/dev.db`.
+First run: `cp .env.example .env`, set `DATABASE_URL` to any Postgres, then
+`npm run db:migrate && npm run seed`.
+
+Local Postgres if you don't have one:
+```bash
+docker run -d --name english-app-db -p 5432:5432 \
+  -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=english_app postgres:16
+```
+
+Deploy instructions (InsForge / Vercel) live in `docs/DEPLOY-INSFORGE.md`.
 
 ## Architecture
 
@@ -25,12 +36,15 @@ Run `npx prisma migrate dev --name init` then `npx tsx prisma/seed.ts` on first 
 src/
 ├── app/
 │   ├── page.tsx                   # Public landing page (redirects to /dashboard if session)
-│   ├── layout.tsx                 # Root: loads fonts (Inter Tight, Manrope), sets data-theme from 'ai-theme' cookie
+│   ├── layout.tsx                 # Root: loads fonts (Inter Tight, Manrope, Fraunces), sets data-theme from 'ai-theme' cookie
 │   ├── globals.css                # ALL design tokens (CSS custom props), Tailwind, base reset
 │   ├── (auth)/login/              # Public login/register pages (no sidebar)
 │   └── (app)/                     # Protected group — layout.tsx checks session, renders AppSidebar + topbar
 │       ├── dashboard/             # Hero lesson card + mini-stats + weekly chart + LearningMap
+│       ├── map/                   # Full learning map with CEFR section progress
 │       ├── learn/[moduleId]/      # Full-screen lesson overlay (translate exercises, calls completeModule)
+│       ├── vocabulary/            # User's own SRS cards, grouped by deck (create/delete)
+│       ├── analytics/             # StudySession history, accuracy by CEFR level
 │       ├── profile/               # Stats page: mini-stats grid, CEFR progress bars, achievements, milestones
 │       ├── placement/             # CAT placement test (sector → adaptive questions → CEFR result)
 │       └── review/                # SRS flip-card session (FSRS 4-rating buttons)
@@ -38,15 +52,17 @@ src/
 │   ├── srs.ts                     # submitSRSReview — schedules next review via FSRS, awards XP
 │   ├── placement.ts               # submitPlacementTest — saves result, redirects to /dashboard
 │   ├── progress.ts                # completeModule — awards XP, updates streak (DB transaction)
+│   ├── vocabulary.ts              # createVocabCard, deleteVocabCard, recordStudySession
 │   ├── auth.ts                    # loginAction, logoutAction, registerAction
 │   └── theme.ts                   # setThemeAction — writes 'ai-theme' cookie
 ├── lib/
 │   ├── srs-engine.ts              # FSRS wrapper: prismaItemToCard, scheduleReview, getDueSRSItems
 │   ├── cat-engine.ts              # CAT logic: session state, selectNextDifficulty, estimateCEFRLevel
-│   ├── prisma.ts                  # Singleton PrismaClient with PrismaLibSql adapter (SQLite)
+│   ├── session-timer.ts           # useSessionTimer — keeps Date.now() out of render (React Compiler purity)
+│   ├── prisma.ts                  # Singleton PrismaClient with PrismaPg adapter (PostgreSQL)
 │   └── auth.ts                    # JWT session via jose: createSessionToken, getSession, set/clearSessionCookie
 ├── components/
-│   ├── AppSidebar.tsx             # Sidebar: Logo, Nav (5 links), daily goal progress, user row + logout
+│   ├── AppSidebar.tsx             # Sidebar: Logo, Nav (7 links), daily goal progress, user row + logout
 │   ├── ThemeToggle.tsx            # Light/dark toggle, calls setThemeAction
 │   ├── learning-map/              # LearningMap.tsx (Framer Motion serpentine), MapNode.tsx
 │   ├── lesson/
@@ -69,17 +85,21 @@ import type { CEFRLevel, SRSState } from '@/generated/prisma/enums'
 Never import from `@/generated/prisma` (directory) — it will fail with TS2307.  
 Always use the singleton: `import { prisma } from '@/lib/prisma'`
 
-The `PrismaClient` constructor **requires** a driver adapter (Prisma v7 breaking change).  
-`PrismaLibSql` from `@prisma/adapter-libsql` is a **factory** — pass a config object, not a pre-created client:
+The `PrismaClient` constructor **requires** a driver adapter (Prisma v7 breaking change):
 ```ts
-import { PrismaLibSql } from '@prisma/adapter-libsql'
-// CORRECT: pass config — it calls createClient internally
-const adapter = new PrismaLibSql({ url: 'file:/absolute/path/to/dev.db' })
-// WRONG: do not call createClient yourself and pass the result
+import { PrismaPg } from '@prisma/adapter-pg'
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
+new PrismaClient({ adapter })
 ```
-Always use an **absolute path** for the SQLite file URL — relative paths cause `URL_INVALID` errors.
 
-After any schema change: `npx prisma generate` then `npx prisma migrate dev`.
+The datasource **URL no longer belongs in `schema.prisma`** — Prisma 7 rejects it there
+(`P1012`). It lives in `prisma.config.ts`, which loads `.env` explicitly via
+`process.loadEnvFile()` because Prisma 7 dropped implicit dotenv loading.
+
+Seed scripts run outside Next, so they import the shared client from
+`prisma/seed-client.ts` rather than constructing their own.
+
+After any schema change: `npm run db:generate` then `npm run db:migrate`.
 
 ## Critical: Next.js 16 breaking changes
 
@@ -124,7 +144,7 @@ Exercise content is defined in a static `EXERCISE_BANK` map in `src/app/(app)/le
 
 ## Data flow
 
-1. **Auth**: custom JWT via `jose`. `src/lib/auth.ts` signs/verifies a `session` cookie. `getSession()` is called in every Server Component and Server Action. `src/lib/supabase/` files exist but are unused — auth is entirely JWT-based.
+1. **Auth**: custom JWT via `jose`. `src/lib/auth.ts` signs/verifies a `session` cookie. `getSession()` is called in every Server Component and Server Action. `AUTH_SECRET` is mandatory in production — `resolveSecret()` throws at startup if it is missing, too short, or still the dev placeholder.
 2. **Auth guard**: `src/app/(app)/layout.tsx` calls `getSession()`, redirects to `/login` if null.
 3. **User record**: `User.id` is the Prisma primary key (cuid). All queries use `session.userId` directly.
 4. **FSRS cycle**: `SRSItem` rows store full FSRS state (D, S, due date). `prismaItemToCard()` reconstructs the `ts-fsrs` `Card`; after `f.next(card, now, grade)` the result is written back via `submitSRSReview`.

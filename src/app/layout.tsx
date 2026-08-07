@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Inter_Tight, Manrope } from 'next/font/google'
+import { Inter_Tight, Manrope, Fraunces } from 'next/font/google'
 import { cookies } from 'next/headers'
 import './globals.css'
 
@@ -17,6 +17,14 @@ const manrope = Manrope({
   weight: ['400', '500', '600', '700'],
 })
 
+// Fuente variable: se omite `weight` a propósito para que Next sirva el
+// archivo variable completo en vez de instancias estáticas sueltas.
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  variable: '--font-fraunces',
+  display: 'swap',
+})
+
 export const metadata: Metadata = {
   title: 'aprendeInglés — Inglés Profesional Personalizado',
   description: 'Aprende inglés profesional con IA, repetición espaciada y gamificación adaptada a tu sector.',
@@ -30,19 +38,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html
       lang="es"
       data-theme={theme}
-      className={`${interTight.variable} ${manrope.variable} h-full`}
+      className={`${interTight.variable} ${manrope.variable} ${fraunces.variable} h-full`}
       style={{ fontFamily: 'var(--f-body)' }}
     >
-      <head>
-        <link
-          rel="preconnect"
-          href="https://fonts.googleapis.com"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap"
-          rel="stylesheet"
-        />
-      </head>
       <body suppressHydrationWarning className="min-h-full" style={{ background: 'var(--bg)', color: 'var(--ink)' }}>
         {children}
       </body>

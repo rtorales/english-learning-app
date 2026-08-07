@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { submitSRSReview } from '@/actions/srs'
 import { recordStudySession } from '@/actions/vocabulary'
+import { useSessionTimer } from '@/lib/session-timer'
 import type { SRSItem } from '@/generated/prisma/client'
 import type { SRSRating } from '@/types'
 import Link from 'next/link'
@@ -24,11 +25,10 @@ export function SRSReviewSession({ items }: SRSReviewSessionProps) {
   const [showAnswer, setShowAnswer] = useState(false)
   const [completed, setCompleted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const sessionStart = useRef(Date.now())
+  const timer = useSessionTimer()
   const correctRef = useRef(0)
 
   const currentItem = items[currentIndex]
-  const progress = (currentIndex / items.length) * 100
 
   async function handleRating(rating: SRSRating) {
     if (isSubmitting) return
@@ -36,10 +36,9 @@ export function SRSReviewSession({ items }: SRSReviewSessionProps) {
     if (rating >= 3) correctRef.current++
     await submitSRSReview({ srsItemId: currentItem.id, rating })
     if (currentIndex + 1 >= items.length) {
-      const durationSecs = Math.round((Date.now() - sessionStart.current) / 1000)
       void recordStudySession({
         type: 'srs_review',
-        durationSecs,
+        durationSecs: timer.elapsedSecs(),
         totalItems: items.length,
         correctItems: correctRef.current,
         xpEarned: items.length * 10,
@@ -175,7 +174,7 @@ export function SRSReviewSession({ items }: SRSReviewSessionProps) {
                       fontSize: 14, color: 'var(--ink-3)', fontStyle: 'italic', maxWidth: 540,
                       background: 'var(--bg-soft)', padding: '10px 16px', borderRadius: 12, marginTop: 8,
                     }}>
-                      "{currentItem.context}"
+                      &ldquo;{currentItem.context}&rdquo;
                     </p>
                   )}
                 </>

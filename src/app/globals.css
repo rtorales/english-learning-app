@@ -71,7 +71,7 @@
   --sh-glow:  0 6px 20px rgba(139,109,181,0.30);
 
   /* Typography */
-  --f-display: "Fraunces", ui-serif, Georgia, serif;
+  --f-display: var(--font-fraunces), "Fraunces", ui-serif, Georgia, serif;
   --f-sans:    "Inter Tight", ui-sans-serif, system-ui, sans-serif;
   --f-body:    "Manrope", "Inter Tight", ui-sans-serif, system-ui, sans-serif;
   --f-mono:    ui-monospace, "SF Mono", Menlo, monospace;

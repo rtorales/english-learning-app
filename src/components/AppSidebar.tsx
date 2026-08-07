@@ -156,10 +156,6 @@ function Avatar({ initials }: { initials: string }) {
 }
 
 /* SVG icons */
-const ico = (d: React.ReactNode, w = 24) => ({ active }: { active?: boolean; size?: number }) => (
-  <svg width={w} height={w} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.25 : 2} strokeLinecap="round" strokeLinejoin="round">{d}</svg>
-)
-
 function HomeIcon({ active }: { active?: boolean }) {
   return <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.25 : 2} strokeLinecap="round" strokeLinejoin="round"><path d="M3 11l9-7 9 7v9a2 2 0 0 1-2 2h-4v-6h-6v6H5a2 2 0 0 1-2-2z"/></svg>
 }

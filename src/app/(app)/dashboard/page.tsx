@@ -27,7 +27,6 @@ export default async function DashboardPage() {
   const completedIds = dbUser.progress.map((p: { moduleId: string }) => p.moduleId)
   const pendingReviews = dbUser.srsItems.length
   const nextModule = modules.find(m => !completedIds.includes(m.id))
-  const firstName = (dbUser.name ?? dbUser.email).split(' ')[0]
 
   const weekXP = [45, 65, 30, 80, 55, dbUser.xp % 100, 0]
   const weekDays = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
