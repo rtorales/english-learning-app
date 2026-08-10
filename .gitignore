@@ -32,6 +32,13 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
+# local database artifacts — nunca commitear datos de usuarios
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
 
 # vercel
 .vercel

@@ -175,7 +175,7 @@ export default async function HomePage() {
               <div style={{ marginTop: 24 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Traducí esta frase</div>
                 <p style={{ fontSize: 20, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.35, fontFamily: 'var(--f-sans)' }}>
-                  "Vamos a <span style={{ background: 'var(--accent-soft)', borderRadius: 6, padding: '1px 5px', color: 'var(--accent-ink)' }}>deploy</span> los cambios después del code review."
+                  &ldquo;Vamos a <span style={{ background: 'var(--accent-soft)', borderRadius: 6, padding: '1px 5px', color: 'var(--accent-ink)' }}>deploy</span> los cambios después del code review.&rdquo;
                 </p>
               </div>
 

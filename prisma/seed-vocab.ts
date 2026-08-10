@@ -2,13 +2,7 @@
  * Seed vocabulary cards for the test user across 5 decks.
  * Run: npx tsx prisma/seed-vocab.ts
  */
-import path from 'path'
-import { PrismaLibSql } from '@prisma/adapter-libsql'
-import { PrismaClient } from '../src/generated/prisma/client'
-
-const dbAbsPath = path.resolve(process.cwd(), 'prisma', 'dev.db').split(path.sep).join('/')
-const adapter = new PrismaLibSql({ url: 'file:' + dbAbsPath })
-const prisma = new PrismaClient({ adapter })
+import { prisma } from './seed-client'
 
 // ─── Card definitions ───────────────────────────────────────────────────────
 

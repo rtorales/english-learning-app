@@ -245,7 +245,6 @@ export default async function AnalyticsPage() {
           {CEFR_ORDER.map((lvl, i) => {
             const done = i < cefrIdx
             const current = i === cefrIdx
-            const upcoming = i > cefrIdx
             const color = ['A1', 'A2'].includes(lvl) ? 'var(--sage)' : ['B1', 'B2'].includes(lvl) ? 'var(--accent)' : 'var(--primary)'
             return (
               <div key={lvl} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, position: 'relative' }}>

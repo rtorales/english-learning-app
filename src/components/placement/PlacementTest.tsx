@@ -6,6 +6,7 @@ import { submitPlacementTest } from '@/actions/placement'
 import { createCATSession, selectNextDifficulty, shouldTerminate, estimateCEFRLevel } from '@/lib/cat-engine'
 import type { CATSession, CATAnswer } from '@/lib/cat-engine'
 import { SAMPLE_QUESTIONS } from './sample-questions'
+import { useSessionTimer } from '@/lib/session-timer'
 import { SECTORS } from '@/types'
 import type { ProfessionalSector, CEFRLevel } from '@/types'
 
@@ -21,7 +22,7 @@ export function PlacementTest() {
   const [phase, setPhase] = useState<Phase>('sector-select')
   const [sector, setSector] = useState<ProfessionalSector | null>(null)
   const [session, setSession] = useState<CATSession>(createCATSession())
-  const [startTime, setStartTime] = useState(0)
+  const timer = useSessionTimer()
 
   const answeredIds = new Set(session.answers.map((a) => a.questionId))
   const unasked = SAMPLE_QUESTIONS.filter((q) => !answeredIds.has(q.id))
@@ -35,12 +36,13 @@ export function PlacementTest() {
   function handleSectorSelect(s: ProfessionalSector) {
     setSector(s)
     setPhase('testing')
-    setStartTime(Date.now())
+    timer.start()
   }
 
   async function handleAnswer(selectedIndex: number) {
     if (!currentQuestion) return
-    const timeMs = Date.now() - startTime
+    // lap() devuelve el tiempo de esta pregunta y arranca el conteo de la siguiente
+    const timeMs = timer.lap()
     const correct = selectedIndex === currentQuestion.correctIndex
     const newAnswer: CATAnswer = {
       questionId: currentQuestion.id,
@@ -53,7 +55,6 @@ export function PlacementTest() {
       currentDifficulty: selectNextDifficulty({ ...session, answers: [...session.answers, newAnswer] }),
     }
     setSession(newSession)
-    setStartTime(Date.now())
     if (shouldTerminate(newSession)) {
       setPhase('submitting')
       await submitPlacementTest({ sector: sector!, session: newSession })
@@ -122,7 +123,6 @@ export function PlacementTest() {
   }
 
   /* ---- Testing ---- */
-  const progress = (session.answers.length / 20) * 100
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 28, padding: '28px 32px', maxWidth: 1200, margin: '0 auto', width: '100%' }}>

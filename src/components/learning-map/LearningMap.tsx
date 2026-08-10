@@ -53,16 +53,16 @@ export function LearningMap({ modules, userLevel, completedModuleIds, pendingRev
   let prevCefrLevel: string | null = null
   const layoutItems: LayoutItem[] = []
 
-  for (const module of modules) {
+  for (const mod of modules) {
     // Insert section banner when CEFR level changes
-    if (module.cefrLevel !== prevCefrLevel) {
-      layoutItems.push({ type: 'banner', cefrLevel: module.cefrLevel as CEFRLevel, y: currentY })
+    if (mod.cefrLevel !== prevCefrLevel) {
+      layoutItems.push({ type: 'banner', cefrLevel: mod.cefrLevel as CEFRLevel, y: currentY })
       currentY += BANNER_SPACE
-      prevCefrLevel = module.cefrLevel
+      prevCefrLevel = mod.cefrLevel
     }
 
-    const moduleOrder = CEFR_ORDER[module.cefrLevel as CEFRLevel]
-    const isCompleted = completedModuleIds.includes(module.id)
+    const moduleOrder = CEFR_ORDER[mod.cefrLevel as CEFRLevel]
+    const isCompleted = completedModuleIds.includes(mod.id)
     const isUnlocked = moduleOrder <= userOrder + 1
     const isCurrent = !foundCurrent && isUnlocked && !isCompleted
     if (isCurrent) foundCurrent = true
@@ -73,16 +73,16 @@ export function LearningMap({ modules, userLevel, completedModuleIds, pendingRev
       type: 'node',
       y: currentY,
       node: {
-        id: module.id,
-        title: module.title,
-        moduleId: module.id,
-        cefrLevel: module.cefrLevel as CEFRLevel,
+        id: mod.id,
+        title: mod.title,
+        moduleId: mod.id,
+        cefrLevel: mod.cefrLevel as CEFRLevel,
         isCompleted,
         isUnlocked,
         isCurrent,
-        isCheckpoint: module.isCheckpoint,
-        isBoss: module.isBoss,
-        xpReward: module.xpReward,
+        isCheckpoint: mod.isCheckpoint,
+        isBoss: mod.isBoss,
+        xpReward: mod.xpReward,
         position: { x, y: currentY },
       },
     })

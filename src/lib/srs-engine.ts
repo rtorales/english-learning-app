@@ -2,7 +2,6 @@ import {
   createEmptyCard,
   fsrs,
   generatorParameters,
-  Rating,
   State,
   type Card,
   type Grade,

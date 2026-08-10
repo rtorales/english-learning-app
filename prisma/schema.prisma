@@ -3,8 +3,9 @@ generator client {
   output   = "../src/generated/prisma"
 }
 
+// La URL vive en prisma.config.ts (Prisma 7 ya no acepta `url` acá).
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 enum CEFRLevel {

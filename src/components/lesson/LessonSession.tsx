@@ -4,6 +4,7 @@ import { useState, useTransition, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { completeModule } from '@/actions/progress'
 import { recordStudySession } from '@/actions/vocabulary'
+import { useSessionTimer } from '@/lib/session-timer'
 
 export interface TranslateExercise {
   questionEs: string
@@ -41,7 +42,7 @@ export function LessonSession({ moduleId, moduleTitle, exercises, xpReward, stre
   const [done, setDone] = useState(false)
   const [, startTransition] = useTransition()
   const router = useRouter()
-  const sessionStart = useRef(Date.now())
+  const timer = useSessionTimer()
   const resultsRef = useRef<Array<{ questionText: string; correctAnswer: string; userAnswer: string; isCorrect: boolean }>>([])
   const scoreRef = useRef(0)
 
@@ -79,7 +80,7 @@ export function LessonSession({ moduleId, moduleTitle, exercises, xpReward, stre
     }
     if (current + 1 >= totalEx) {
       const finalScore = Math.round((scoreRef.current / totalEx) * 100)
-      const durationSecs = Math.round((Date.now() - sessionStart.current) / 1000)
+      const durationSecs = timer.elapsedSecs()
       startTransition(async () => {
         await Promise.all([
           completeModule({ moduleId, score: finalScore }),
