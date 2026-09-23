@@ -30,6 +30,32 @@ docker run -d --name english-app-db -p 5432:5432 \
 
 Deploy instructions (InsForge / Vercel) live in `docs/DEPLOY-INSFORGE.md`.
 
+`AGENTS.md` carries a standing warning that this Next.js major has breaking changes
+versus training data; consult `node_modules/next/dist/docs/` before relying on
+remembered APIs.
+
+## Environment
+
+| Variable | Required | Notes |
+|---|---|---|
+| `DATABASE_URL` | yes | Any Postgres. Nothing runs without it — `src/lib/prisma.ts` throws on startup, and the seed scripts exit 1. |
+| `AUTH_SECRET` | production only | Signs session JWTs. `resolveSecret()` in `src/lib/auth.ts` throws at import time if it is missing, under 32 chars, or still the dev placeholder. In development it silently falls back to that placeholder. |
+| `DATABASE_POOL_MAX` | no | Pool size per instance, default 5. Kept low because each serverless instance opens its own pool. |
+
+Next loads `.env` automatically; the Prisma CLI and seed scripts do not, so
+`prisma.config.ts` and `prisma/seed-client.ts` each call `process.loadEnvFile()`.
+
+## Testing
+
+There is no test runner and no test files — `npm run lint` and `npm run typecheck`
+are the only automated checks. The pure-logic seams worth covering first are
+`src/lib/cat-engine.ts` (difficulty selection, CEFR estimation, termination) and
+`src/lib/srs-engine.ts` (Prisma row ↔ FSRS `Card` round-trip), neither of which
+touches the database.
+
+To exercise the app end to end, run it against a real Postgres and log in as the
+seeded demo user (`test@test.com` / `test1234`).
+
 ## Architecture
 
 ```
@@ -38,7 +64,7 @@ src/
 │   ├── page.tsx                   # Public landing page (redirects to /dashboard if session)
 │   ├── layout.tsx                 # Root: loads fonts (Inter Tight, Manrope, Fraunces), sets data-theme from 'ai-theme' cookie
 │   ├── globals.css                # ALL design tokens (CSS custom props), Tailwind, base reset
-│   ├── (auth)/login/              # Public login/register pages (no sidebar)
+│   ├── (auth)/                    # login/ and register/ — public, no sidebar
 │   └── (app)/                     # Protected group — layout.tsx checks session, renders AppSidebar + topbar
 │       ├── dashboard/             # Hero lesson card + mini-stats + weekly chart + LearningMap
 │       ├── map/                   # Full learning map with CEFR section progress
@@ -162,3 +188,43 @@ Exercise content is defined in a static `EXERCISE_BANK` map in `src/app/(app)/le
 Defined in `types/index.ts` as `XP_PER_ACTION`: lesson=50, srsReview=10, streak=25, milestone=100, checkpoint=75, boss=200.  
 Level threshold: 500 XP per level (used in `XPBar.tsx`).  
 Map unlock rule: a module unlocks when `CEFR_ORDER[module.cefrLevel] <= CEFR_ORDER[user.cefrLevel] + 1`.
+
+## Seeded content coverage
+
+The seed is uneven, and the gaps look like bugs if you don't know about them:
+
+| Sector | Modules in `prisma/seed.ts` |
+|---|---|
+| `tech` | 8 |
+| `business` | 3 |
+| `data` | 2 |
+| `engineering` | **0** |
+| `healthcare` | **0** |
+
+`/map` and `/dashboard` query `LearningModule` filtered by `user.sector`, so a user
+who picks engineering or healthcare in the placement test lands on an **empty map**.
+That is missing content, not a broken query.
+
+Module IDs are hardcoded and upserted (`mod-tech-a1-1`, `mod-biz-b1-1`, …) so they
+stay stable across re-seeds. `EXERCISE_BANK` in `src/app/(app)/learn/[moduleId]/page.tsx`
+keys off exactly those IDs — **adding a module means adding both the seed entry and
+the bank entry**, or the lesson silently serves `DEFAULT_EXERCISES`. Only 5 of the 13
+modules have curated exercises today, all of them `tech`.
+
+The CAT question bank (`src/components/placement/sample-questions.ts`) is 20 static
+questions, enough for the adaptive cutoff but repetitive across retakes.
+
+## Gotchas
+
+- **`recordStudySession` fails silently by design.** It returns early with no session
+  and wraps its write in a bare `catch {}` so a logging failure never breaks a lesson
+  or review flow. Analytics gaps will not surface as errors — check the
+  `StudySession` table directly when debugging `/analytics`.
+- **`(app)/layout.tsx` hits the database on every navigation**, joining due `SRSItem`
+  rows to compute the sidebar's pending-review badge. Any per-page query budget has
+  to account for it.
+- **`AUTH_SECRET` is validated at module import, not per request.** A bad value in
+  production takes down every route that touches `src/lib/auth.ts`, which is all of
+  them, with a 500 rather than a redirect.
+- **A reload mid-placement-test loses it.** Nothing partial is persisted server-side,
+  so there is no resume path and no row to inspect when a user reports a lost test.
